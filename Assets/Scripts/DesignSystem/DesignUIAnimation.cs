@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using DG.Tweening;
 
 /// <summary>
@@ -175,6 +176,13 @@ public class DesignUIAnimation : MonoBehaviour
                         .SetEase(Ease.OutQuad));
                 }
             });
+        }
+        
+        else if (clickCount == 3)
+        {
+            // 第三次点击：切换到DyeProduct场景
+            Debug.Log("第三次点击，切换到DyeProduct场景");
+            SceneManager.LoadScene("Assets/Scenes/Design/DyeProduct.unity");
         }
         
         // 设置动画完成回调
