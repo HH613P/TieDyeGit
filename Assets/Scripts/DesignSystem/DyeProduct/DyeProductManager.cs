@@ -14,15 +14,18 @@ namespace DesignSystem.DyeProduct
         [SerializeField] private Transform canvasTransform;
         [SerializeField] private AudioSource audioSource;
         [SerializeField] private AudioClip pourWaterClip;
+        [SerializeField] private GameObject bucketEmptyObject; // 空桶对象引用
 
         [Header("Settings")]
         [SerializeField] private float totalEffectDuration = 1.0f; // 总效果持续时间
         [SerializeField] private float fadeInPercentage = 0.5f; // 渐显占总时间的比例
         [SerializeField] private float audioPlayDuration = 2.0f; // 音频播放时长
+        [SerializeField] private float bucketFadeOutDuration = 1.0f; // 桶透明度过渡持续时间
 
         private float fadeInDuration;
         private float fadeOutDuration;
         private Coroutine audioPlayCoroutine;
+        private Coroutine bucketFadeCoroutine;
 
         private void Awake()
         {
@@ -51,6 +54,9 @@ namespace DesignSystem.DyeProduct
 
             // 验证预制体路径
             ValidatePrefabReferences();
+            
+            // 验证桶对象引用
+            ValidateBucketReference();
         }
 
         private void InitializeAudioSource()
@@ -147,9 +153,11 @@ namespace DesignSystem.DyeProduct
         }
 
         private void OnNextButtonClicked()
-        {
-            // 播放倒水音效
+        {    // 播放倒水音效
             PlayPourWaterSound();
+            
+            // 开始桶的透明度过渡
+            StartBucketFadeOut();
             
             // 实例化预制体并添加渐显渐隐效果
             StartCoroutine(ShowAndHidePrefabs());
@@ -312,21 +320,111 @@ namespace DesignSystem.DyeProduct
         }
         
         private void ValidateAudioSettings()
-        {
-            // 检查音频播放时长
+        {    // 检查音频播放时长
             if (audioPlayDuration <= 0)
-            {
-                Debug.LogWarning("Audio play duration must be positive. Setting to default 2.0s.");
+            {                Debug.LogWarning("Audio play duration must be positive. Setting to default 2.0s.");
                 audioPlayDuration = 2.0f;
             }
             
             // 在编辑器模式下提示用户可以在Inspector中设置音频引用
             #if UNITY_EDITOR
             if (pourWaterClip == null)
-            {
-                Debug.Log("Pour water audio clip not set. You can assign it in the Inspector or it will be loaded at runtime from Assets/Audio/pour water.mp3.");
+            {                Debug.Log("Pour water audio clip not set. You can assign it in the Inspector or it will be loaded at runtime from Assets/Audio/pour water.mp3.");
             }
             #endif
+        }
+        
+        private void ValidateBucketReference()
+        {    // 确保桶对象引用有效
+            if (bucketEmptyObject == null)
+            {                Debug.LogWarning("BucketEmptyObject reference is missing! Please assign it in the Inspector.");
+            }
+            
+            // 确保桶透明度过渡时间有效
+            if (bucketFadeOutDuration <= 0)
+            {                Debug.LogWarning("Bucket fade out duration must be positive. Setting to default 1.0s.");
+                bucketFadeOutDuration = 1.0f;
+            }
+        }
+        
+        private void StartBucketFadeOut()
+        {    // 如果有正在运行的桶透明度协程，停止它
+            if (bucketFadeCoroutine != null)
+            {                StopCoroutine(bucketFadeCoroutine);
+            }
+            
+            // 启动新的透明度渐变协程
+            bucketFadeCoroutine = StartCoroutine(FadeBucketToZero());
+        }
+        
+        private IEnumerator FadeBucketToZero()
+        {    if (bucketEmptyObject == null)
+            {                Debug.LogWarning("Cannot fade bucket - bucketEmptyObject reference is null!");
+                yield break;
+            }
+            
+            // 保存初始透明度
+            float startAlpha = 1.0f;
+            SpriteRenderer[] renderers = bucketEmptyObject.GetComponentsInChildren<SpriteRenderer>(true);
+            Image[] images = bucketEmptyObject.GetComponentsInChildren<Image>(true);
+            
+            // 检查是否有可设置透明度的组件
+            if (renderers.Length == 0 && images.Length == 0)
+            {                Debug.LogWarning("No SpriteRenderer or Image components found on BucketEmptyObject! Cannot apply fade effect.");
+                yield break;
+            }
+            
+            // 记录找到的组件数量用于调试
+            Debug.Log($"Starting bucket fade effect: {renderers.Length} SpriteRenderers, {images.Length} Images found");
+            
+            float elapsedTime = 0f;
+            
+            // 执行透明度渐变
+            while (elapsedTime < bucketFadeOutDuration)
+            {                float t = elapsedTime / bucketFadeOutDuration;
+                float currentAlpha = Mathf.Lerp(startAlpha, 0f, t);
+                
+                // 设置所有SpriteRenderer的透明度
+                foreach (SpriteRenderer renderer in renderers)
+                {                    if (renderer != null)
+                    {                        Color color = renderer.color;
+                        color.a = currentAlpha;
+                        renderer.color = color;
+                    }
+                }
+                
+                // 设置所有Image的透明度
+                foreach (Image image in images)
+                {                    if (image != null)
+                    {                        Color color = image.color;
+                        color.a = currentAlpha;
+                        image.color = color;
+                    }
+                }
+                
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+            
+            // 确保最终透明度为0
+            foreach (SpriteRenderer renderer in renderers)
+            {                if (renderer != null)
+                {                    Color color = renderer.color;
+                    color.a = 0f;
+                    renderer.color = color;
+                }
+            }
+            
+            foreach (Image image in images)
+            {                if (image != null)
+                {                    Color color = image.color;
+                    color.a = 0f;
+                    image.color = color;
+                }
+            }
+            
+            Debug.Log("Bucket fade effect completed successfully");
+            bucketFadeCoroutine = null;
         }
     }
 }

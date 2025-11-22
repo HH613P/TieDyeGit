@@ -1504,8 +1504,13 @@ MonoBehaviour:
   limeImagePrefab: {fileID: 1236962411028018841, guid: 5575701c5bc858644bc25d75c6ec8659,
     type: 3}
   canvasTransform: {fileID: 1819731716}
+  audioSource: {fileID: 0}
+  pourWaterClip: {fileID: 0}
+  bucketEmptyObject: {fileID: 1937930162}
   totalEffectDuration: 2
   fadeInPercentage: 1
+  audioPlayDuration: 2
+  bucketFadeOutDuration: 1
 --- !u!1 &1381912400
 GameObject:
   m_ObjectHideFlags: 0
@@ -1640,7 +1645,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: click the materials
+  m_text: click the bucket
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
