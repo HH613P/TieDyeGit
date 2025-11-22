@@ -11,21 +11,32 @@ namespace DesignSystem.DyeProduct
         [SerializeField] private Button nextButton;
         [SerializeField] private GameObject banlanImagePrefab;
         [SerializeField] private GameObject limeImagePrefab;
+        [SerializeField] private GameObject hammerImagePrefab;
         [SerializeField] private Transform canvasTransform;
         [SerializeField] private AudioSource audioSource;
         [SerializeField] private AudioClip pourWaterClip;
         [SerializeField] private GameObject bucketEmptyObject; // 空桶对象引用
+        [SerializeField] private GameObject banlanObject; // Banlan对象引用
+        [SerializeField] private GameObject limeObject; // Lime对象引用
+        [SerializeField] private GameObject hammerObject; // Hammer对象引用
 
         [Header("Settings")]
         [SerializeField] private float totalEffectDuration = 1.0f; // 总效果持续时间
         [SerializeField] private float fadeInPercentage = 0.5f; // 渐显占总时间的比例
         [SerializeField] private float audioPlayDuration = 2.0f; // 音频播放时长
         [SerializeField] private float bucketFadeOutDuration = 1.0f; // 桶透明度过渡持续时间
+        [SerializeField] private float moveDuration = 1.0f; // 移动动画持续时间
+        [SerializeField] private float hammerDelay = 0.5f; // Hammer开始移动的延迟时间
+        [SerializeField] private float banlanLimeMoveDistance = 500f; // Banlan和Lime向左移动距离
+        [SerializeField] private float hammerMoveDistance = 400f; // Hammer向右移动距离
 
         private float fadeInDuration;
         private float fadeOutDuration;
         private Coroutine audioPlayCoroutine;
         private Coroutine bucketFadeCoroutine;
+        private Coroutine banlanMoveCoroutine;
+        private Coroutine limeMoveCoroutine;
+        private Coroutine hammerMoveCoroutine;
 
         private void Awake()
         {
@@ -57,6 +68,9 @@ namespace DesignSystem.DyeProduct
             
             // 验证桶对象引用
             ValidateBucketReference();
+            
+            // 验证移动对象引用
+            ValidateMoveObjectReferences();
         }
 
         private void InitializeAudioSource()
@@ -161,6 +175,67 @@ namespace DesignSystem.DyeProduct
             
             // 实例化预制体并添加渐显渐隐效果
             StartCoroutine(ShowAndHidePrefabs());
+            
+            // 开始Banlan和Lime的移动
+            StartBanlanLimeMovement();
+            
+            // 延迟后开始Hammer的移动
+            StartCoroutine(StartHammerMovementWithDelay());
+        }
+        
+        private void StartBanlanLimeMovement()
+        {    Debug.Log("Starting Banlan and Lime movement: " + banlanLimeMoveDistance + " units left over " + moveDuration + " seconds");
+            
+            // 停止现有的移动协程
+            if (banlanMoveCoroutine != null)
+            {    StopCoroutine(banlanMoveCoroutine);
+                banlanMoveCoroutine = null;
+            }
+            if (limeMoveCoroutine != null)
+            {    StopCoroutine(limeMoveCoroutine);
+                limeMoveCoroutine = null;
+            }
+            
+            // 开始新的移动协程
+            if (banlanObject != null)
+            {    Debug.Log("Starting move for Banlan");
+                banlanMoveCoroutine = StartCoroutine(MoveObject(banlanObject, new Vector3(-banlanLimeMoveDistance, 0, 0), moveDuration));
+            }
+            else
+            {    Debug.LogWarning("Banlan object is null, skipping movement");
+            }
+            
+            if (limeObject != null)
+            {    Debug.Log("Starting move for Lime");
+                limeMoveCoroutine = StartCoroutine(MoveObject(limeObject, new Vector3(-banlanLimeMoveDistance, 0, 0), moveDuration));
+            }
+            else
+            {    Debug.LogWarning("Lime object is null, skipping movement");
+            }
+        }
+        
+        private IEnumerator StartHammerMovementWithDelay()
+        {
+            Debug.Log("Starting Hammer movement with " + hammerDelay + " seconds delay");
+            yield return new WaitForSeconds(hammerDelay);
+            
+            // 停止现有的锤子移动协程
+            if (hammerMoveCoroutine != null)
+            {
+                StopCoroutine(hammerMoveCoroutine);
+                hammerMoveCoroutine = null;
+            }
+            
+            // 开始锤子移动协程
+            if (hammerObject != null)
+            {
+                Debug.Log("Starting move for Hammer: " + hammerMoveDistance + " units right over " + moveDuration + " seconds");
+                hammerMoveCoroutine = StartCoroutine(MoveObject(hammerObject, new Vector3(hammerMoveDistance, 0, 0), moveDuration));
+            }
+            else
+            {
+                Debug.LogWarning("Hammer object is null, skipping movement");
+            }
         }
 
         private IEnumerator ShowAndHidePrefabs()
@@ -425,6 +500,75 @@ namespace DesignSystem.DyeProduct
             
             Debug.Log("Bucket fade effect completed successfully");
             bucketFadeCoroutine = null;
+        }
+        
+        private IEnumerator MoveObject(GameObject targetObject, Vector3 targetOffset, float duration)
+        {    if (targetObject == null)
+            {    Debug.LogWarning("Cannot move null object!");
+                yield break;
+            }
+            
+            RectTransform rectTransform = targetObject.GetComponent<RectTransform>();
+            if (rectTransform == null)
+            {    Debug.LogWarning("Object does not have RectTransform component: " + targetObject.name);
+                yield break;
+            }
+            
+            // 记录起始位置
+            Vector3 startPosition = rectTransform.anchoredPosition3D;
+            // 计算目标位置
+            Vector3 targetPosition = startPosition + targetOffset;
+            
+            float elapsedTime = 0f;
+            
+            // 平滑移动对象
+            while (elapsedTime < duration)
+            {    // 使用线性插值计算当前位置
+                float progress = elapsedTime / duration;
+                rectTransform.anchoredPosition3D = Vector3.Lerp(startPosition, targetPosition, progress);
+                
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+            
+            // 确保对象精确到达目标位置
+            rectTransform.anchoredPosition3D = targetPosition;
+            
+            Debug.Log("Object movement completed for: " + targetObject.name + ". Final position: " + targetPosition);
+        }
+        
+        private void ValidateMoveObjectReferences()
+        {
+            // 验证Banlan对象引用
+            if (banlanObject == null)
+            {
+                Debug.LogWarning("BanlanObject reference is missing! Please assign it in the Inspector.");
+            }
+            
+            // 验证Lime对象引用
+            if (limeObject == null)
+            {
+                Debug.LogWarning("LimeObject reference is missing! Please assign it in the Inspector.");
+            }
+            
+            // 验证Hammer对象引用
+            if (hammerObject == null)
+            {
+                Debug.LogWarning("HammerObject reference is missing! Please assign it in the Inspector.");
+            }
+            
+            // 确保移动参数有效
+            if (moveDuration <= 0)
+            {
+                Debug.LogWarning("Move duration must be positive. Setting to default 1.0s.");
+                moveDuration = 1.0f;
+            }
+            
+            if (hammerDelay < 0)
+            {
+                Debug.LogWarning("Hammer delay cannot be negative. Setting to default 0.5s.");
+                hammerDelay = 0.5f;
+            }
         }
     }
 }
