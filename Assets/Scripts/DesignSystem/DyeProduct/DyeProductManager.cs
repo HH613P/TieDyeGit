@@ -16,13 +16,16 @@ namespace DesignSystem.DyeProduct
         [SerializeField] private AudioSource audioSource;
         [SerializeField] private AudioClip pourWaterClip;
         [SerializeField] private AudioClip beatClip; // 锤子音效
+        [SerializeField] private AudioClip finishClip; // 完成音效
         [SerializeField] private GameObject bucketEmptyObject; // 空桶对象引用
         [SerializeField] private GameObject bucketMixObject; // 混合桶对象引用
+        [SerializeField] private GameObject bucketFrothObject; // 泡沫桶对象引用
         [SerializeField] private GameObject banlanObject; // Banlan对象引用
         [SerializeField] private GameObject limeObject; // Lime对象引用
         [SerializeField] private GameObject hammerObject; // Hammer对象引用
         [SerializeField] private GameObject bubbleObject; // Bubble对象引用
         [SerializeField] private GameObject rawmaterialsIntroduce; // 原材料介绍对象引用
+        [SerializeField] private GameObject finishObject; // Finish对象引用
 
         [Header("Settings")]
         [SerializeField] private float totalEffectDuration = 1.0f; // 总效果持续时间
@@ -39,11 +42,13 @@ namespace DesignSystem.DyeProduct
         private Coroutine audioPlayCoroutine;
         private Coroutine bucketFadeCoroutine;
         private Coroutine bucketMixFadeCoroutine; // 混合桶渐变协程引用
+        private Coroutine bucketFrothFadeCoroutine; // 泡沫桶渐变协程引用
         private Coroutine banlanMoveCoroutine;
         private Coroutine limeMoveCoroutine;
         private Coroutine hammerMoveCoroutine;
         private Coroutine bubbleMoveCoroutine; // 气泡移动协程引用
         private Coroutine rawmaterialsIntroduceMoveCoroutine; // 原材料介绍移动协程引用
+        private Coroutine finishMoveCoroutine; // Finish移动协程引用
         private int nextButtonClickCount = 0; // 下一个按钮的点击次数计数
         private Coroutine hammerAnimationCoroutine; // 锤子动画协程引用
 
@@ -53,6 +58,7 @@ namespace DesignSystem.DyeProduct
             hammerAnimationCoroutine = null;
             bucketFadeCoroutine = null;
             bucketMixFadeCoroutine = null;
+            bucketFrothFadeCoroutine = null;
             audioPlayCoroutine = null;
             banlanMoveCoroutine = null;
             limeMoveCoroutine = null;
@@ -196,6 +202,9 @@ namespace DesignSystem.DyeProduct
             limeMoveCoroutine = null;
             hammerMoveCoroutine = null;
             bubbleMoveCoroutine = null;
+            rawmaterialsIntroduceMoveCoroutine = null;
+            finishMoveCoroutine = null;
+            audioPlayCoroutine = null;
             
             // 重置点击计数
             nextButtonClickCount = 0;
@@ -227,6 +236,19 @@ namespace DesignSystem.DyeProduct
             else if (nextButtonClickCount == 2)
             {    // 第二次点击 - 新的锤子动画逻辑
                 StartHammerAnimationSequence();
+            }
+            else if (nextButtonClickCount == 3)
+            {    // 第三次点击 - Bubble向左平移1000单位
+                StartBubbleLeftMovement();
+                
+                // 同时启动Finish对象的延迟移动（0.5秒后向右平移900单位）
+                StartFinishMovementWithDelay();
+                
+                // 播放完成音效
+                PlayFinishSound();
+                
+                // 将Bucket_froth的透明度调为0，持续1秒
+                FadeBucketFrothToZero();
             }
         }
         
@@ -297,7 +319,12 @@ namespace DesignSystem.DyeProduct
         
         private void FadeBucketMixToZero()
         {    Debug.Log("Starting to fade Bucket_mix to zero opacity for 1 second");
-            StartCoroutine(FadeBucketMixToZeroCoroutine());
+        StartCoroutine(FadeBucketMixToZeroCoroutine());
+        }
+        
+        private void FadeBucketFrothToZero()
+        {    Debug.Log("Starting to fade Bucket_froth to zero opacity for 1 second");
+        StartCoroutine(FadeBucketFrothToZeroCoroutine());
         }
         
         // 延迟后气泡移动协程
@@ -331,6 +358,74 @@ namespace DesignSystem.DyeProduct
             else
             {
                 Debug.LogWarning("RawmaterialsIntroduce object reference is null, cannot move.");
+            }
+        }
+        
+        private void StartBubbleLeftMovement()
+        {
+            Debug.Log("Starting Bubble left movement, moving left by 1000 units over 1 second");
+            
+            // 停止现有的气泡移动协程
+            if (bubbleMoveCoroutine != null)
+            {
+                StopCoroutine(bubbleMoveCoroutine);
+                bubbleMoveCoroutine = null;
+            }
+            
+            // 启动新的气泡向左移动协程
+            float bubbleMoveDuration = 1.0f; // 持续1秒
+            bubbleMoveCoroutine = StartCoroutine(DelayedBubbleLeftMovement(bubbleMoveDuration));
+        }
+        
+        private IEnumerator DelayedBubbleLeftMovement(float duration)
+        {
+            // 验证气泡对象引用
+            if (bubbleObject != null)
+            {
+                Debug.Log("Bubble left movement started: moving left by 1000 units");
+                // 向左平移1000单位（负值表示向左）
+                yield return StartCoroutine(MoveObject(bubbleObject, new Vector3(-1000f, 0, 0), duration));
+                Debug.Log("Bubble left movement completed");
+            }
+            else
+            {
+                Debug.LogWarning("Bubble object reference is null, cannot move.");
+            }
+        }
+        
+        private void StartFinishMovementWithDelay()
+        {
+            Debug.Log("Starting Finish movement with 0.5s delay, moving right by 900 units over 1 second");
+            
+            // 停止现有的Finish移动协程
+            if (finishMoveCoroutine != null)
+            {
+                StopCoroutine(finishMoveCoroutine);
+                finishMoveCoroutine = null;
+            }
+            
+            // 启动新的Finish延迟移动协程（0.5秒延迟，1秒持续时间）
+            float finishMoveDelay = 0.5f; // 0.5秒延迟
+            float finishMoveDuration = 1.0f; // 持续1秒
+            finishMoveCoroutine = StartCoroutine(DelayedFinishMovement(finishMoveDelay, finishMoveDuration));
+        }
+        
+        private IEnumerator DelayedFinishMovement(float delay, float duration)
+        {
+            // 等待指定的延迟时间（0.5秒）
+            yield return new WaitForSeconds(delay);
+            
+            // 验证Finish对象引用
+            if (finishObject != null)
+            {
+                Debug.Log("Finish movement started after delay: moving right by 900 units");
+                // 向右平移900单位（正值表示向右）
+                yield return StartCoroutine(MoveObject(finishObject, new Vector3(900f, 0, 0), duration));
+                Debug.Log("Finish movement completed");
+            }
+            else
+            {
+                Debug.LogWarning("Finish object reference is null, cannot move.");
             }
         }
         
@@ -404,6 +499,76 @@ namespace DesignSystem.DyeProduct
             Debug.Log("Bucket mix fade effect to zero opacity completed successfully");
         }
         
+        private IEnumerator FadeBucketFrothToZeroCoroutine()
+        {    if (bucketFrothObject == null)
+            {    Debug.LogWarning("Cannot fade bucket froth - bucketFrothObject reference is null!");
+                yield break;
+            }
+            
+            // 保存初始透明度
+            float startAlpha = 1.0f;
+            SpriteRenderer[] renderers = bucketFrothObject.GetComponentsInChildren<SpriteRenderer>(true);
+            Image[] images = bucketFrothObject.GetComponentsInChildren<Image>(true);
+            
+            // 检查是否有可设置透明度的组件
+            if (renderers.Length == 0 && images.Length == 0)
+            {    Debug.LogWarning("No SpriteRenderer or Image components found on BucketFrothObject! Cannot apply fade effect.");
+                yield break;
+            }
+            
+            // 记录找到的组件数量用于调试
+            Debug.Log($"Starting bucket froth fade effect: {renderers.Length} SpriteRenderers, {images.Length} Images found");
+            
+            float fadeDuration = 1.0f; // 持续1秒
+            float elapsedTime = 0f;
+            
+            // 执行透明度渐变到0
+            while (elapsedTime < fadeDuration)
+            {    float t = elapsedTime / fadeDuration;
+                float currentAlpha = Mathf.Lerp(startAlpha, 0f, t);
+                
+                // 设置所有SpriteRenderer的透明度
+                foreach (SpriteRenderer renderer in renderers)
+                {    if (renderer != null)
+                    {    Color color = renderer.color;
+                        color.a = currentAlpha;
+                        renderer.color = color;
+                    }
+                }
+                
+                // 设置所有Image的透明度
+                foreach (Image image in images)
+                {    if (image != null)
+                    {    Color color = image.color;
+                        color.a = currentAlpha;
+                        image.color = color;
+                    }
+                }
+                
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+            
+            // 确保最终透明度为0
+            foreach (SpriteRenderer renderer in renderers)
+            {    if (renderer != null)
+                {    Color color = renderer.color;
+                    color.a = 0f;
+                    renderer.color = color;
+                }
+            }
+            
+            foreach (Image image in images)
+            {    if (image != null)
+                {    Color color = image.color;
+                    color.a = 0f;
+                    image.color = color;
+                }
+            }
+            
+            Debug.Log("Bucket froth fade effect to zero opacity completed successfully");
+        }
+        
         private void PlayBeatSound()
         {    // 如果有正在播放的音频协程，停止它
             if (audioPlayCoroutine != null)
@@ -412,6 +577,55 @@ namespace DesignSystem.DyeProduct
             
             // 启动新的音频播放协程，播放beat.wav
             audioPlayCoroutine = StartCoroutine(PlayBeatAudioForDuration());
+        }
+        
+        private void PlayFinishSound()
+        {    // 如果有正在播放的音频协程，停止它
+            if (audioPlayCoroutine != null)
+            {    StopCoroutine(audioPlayCoroutine);
+            }
+            
+            // 启动新的音频播放协程，播放finish.wav
+            audioPlayCoroutine = StartCoroutine(PlayFinishAudioForDuration());
+        }
+        
+        private IEnumerator PlayFinishAudioForDuration()
+        {    // 如果没有音频剪辑，尝试加载
+            if (finishClip == null)
+            {    // 尝试从Resources文件夹加载
+                finishClip = Resources.Load<AudioClip>("finish");
+                
+                // 如果Resources中也没有，尝试直接从Assets/Audio文件夹加载（仅编辑器模式）
+                #if UNITY_EDITOR
+                if (finishClip == null)
+                {    string audioPath = "Assets/Audio/finish.wav";
+                    Debug.Log("Attempting to load audio clip from: " + audioPath);
+                    UnityEditor.AssetDatabase.Refresh();
+                    finishClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath);
+                }
+                #endif
+                
+                if (finishClip == null)
+                {    Debug.LogError("Failed to load finish audio clip!");
+                    yield break;
+                }
+            }
+            
+            // 设置音频剪辑并播放
+            audioSource.clip = finishClip;
+            audioSource.loop = false;
+            audioSource.Play();
+            
+            // 等待指定的播放时长（2秒）
+            float duration = 2.0f; // 硬性设置为2秒
+            yield return new WaitForSeconds(duration);
+            
+            // 停止播放
+            if (audioSource.isPlaying)
+            {    audioSource.Stop();
+            }
+            
+            audioPlayCoroutine = null;
         }
         
         private IEnumerator PlayBeatAudioForDuration()
@@ -989,6 +1203,12 @@ namespace DesignSystem.DyeProduct
             if (rawmaterialsIntroduce == null)
             {
                 Debug.LogWarning("RawmaterialsIntroduce reference is missing! Please assign it in the Inspector.");
+            }
+            
+            // 验证Finish对象引用
+            if (finishObject == null)
+            {
+                Debug.LogWarning("FinishObject reference is missing! Please assign it in the Inspector.");
             }
             
             // 确保移动参数有效
