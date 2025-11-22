@@ -26,6 +26,7 @@ namespace DesignSystem.DyeProduct
         [SerializeField] private GameObject bubbleObject; // Bubble对象引用
         [SerializeField] private GameObject rawmaterialsIntroduce; // 原材料介绍对象引用
         [SerializeField] private GameObject finishObject; // Finish对象引用
+        [SerializeField] private GameObject nextSceneObject; // 下一个场景的UI对象
 
         [Header("Settings")]
         [SerializeField] private float totalEffectDuration = 1.0f; // 总效果持续时间
@@ -36,6 +37,7 @@ namespace DesignSystem.DyeProduct
         [SerializeField] private float hammerDelay = 0.5f; // Hammer开始移动的延迟时间
         [SerializeField] private float banlanLimeMoveDistance = 500f; // Banlan和Lime向左移动距离
         [SerializeField] private float hammerMoveDistance = 400f; // Hammer向右移动距离
+        [SerializeField] private float nextSceneScaleDuration = 0.5f; // NextScene放大动画持续时间
 
         private float fadeInDuration;
         private float fadeOutDuration;
@@ -97,6 +99,24 @@ namespace DesignSystem.DyeProduct
             
             // 验证移动对象引用
             ValidateMoveObjectReferences();
+            
+            // 验证NextScene对象引用
+            ValidateNextSceneReference();
+            
+            // 初始化NextScene对象状态
+            if (nextSceneObject != null)
+            {                
+                nextSceneObject.SetActive(false); // 先设置为不激活
+                RectTransform rectTransform = nextSceneObject.GetComponent<RectTransform>();
+                if (rectTransform != null)
+                {                    
+                    rectTransform.localScale = Vector3.zero; // 设置缩放为0
+                }
+            }
+            else
+            {                
+                Debug.LogWarning("NextSceneObject reference is missing! Please assign it in the Inspector.");
+            }
         }
 
         private void InitializeAudioSource()
@@ -208,6 +228,13 @@ namespace DesignSystem.DyeProduct
             
             // 重置点击计数
             nextButtonClickCount = 0;
+            
+            // 重置nextButton的启用状态
+            if (nextButton != null && !nextButton.interactable)
+            {
+                nextButton.interactable = true;
+                Debug.Log("NextButton has been re-enabled in ResetState");
+            }
         }
 
         private void OnNextButtonClicked()
@@ -249,6 +276,16 @@ namespace DesignSystem.DyeProduct
                 
                 // 将Bucket_froth的透明度调为0，持续1秒
                 FadeBucketFrothToZero();
+                
+                // 禁用nextButton，防止第四次点击
+                if (nextButton != null)
+                {
+                    nextButton.interactable = false;
+                    Debug.Log("NextButton has been disabled after third click");
+                }
+                
+                // 显示并放大NextScene对象
+                ShowAndScaleNextScene();
             }
         }
         
@@ -1223,6 +1260,85 @@ namespace DesignSystem.DyeProduct
                 Debug.LogWarning("Hammer delay cannot be negative. Setting to default 0.5s.");
                 hammerDelay = 0.5f;
             }
+        }
+        
+        private void ValidateNextSceneReference()
+        {
+            // 验证NextScene对象引用
+            if (nextSceneObject == null)
+            {
+                Debug.LogWarning("NextSceneObject reference is missing! Please assign it in the Inspector.");
+            }
+        }
+        
+        private void ShowAndScaleNextScene()
+        {
+            // 显示并放大NextScene对象
+            if (nextSceneObject != null)
+            {
+                Debug.Log("Showing and scaling NextScene object");
+                
+                // 先激活对象
+                nextSceneObject.SetActive(true);
+                
+                // 启动放大动画协程
+                StartCoroutine(ScaleNextSceneCoroutine());
+                
+                // 确保NextSceneManager组件存在
+                NextSceneManager nextSceneManager = nextSceneObject.GetComponent<NextSceneManager>();
+                if (nextSceneManager == null)
+                {
+                    // 如果没有NextSceneManager组件，添加一个
+                    nextSceneManager = nextSceneObject.AddComponent<NextSceneManager>();
+                    Debug.Log("Added NextSceneManager component to nextSceneObject");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("Cannot show NextScene object - reference is null!");
+            }
+        }
+        
+        private IEnumerator ScaleNextSceneCoroutine()
+        {
+            if (nextSceneObject == null)
+            {
+                Debug.LogWarning("Cannot scale NextScene object - reference is null!");
+                yield break;
+            }
+            
+            RectTransform rectTransform = nextSceneObject.GetComponent<RectTransform>();
+            if (rectTransform == null)
+            {
+                Debug.LogWarning("NextScene object does not have RectTransform component!");
+                yield break;
+            }
+            
+            // 设置初始缩放为0
+            rectTransform.localScale = Vector3.zero;
+            
+            // 使用可配置的放大动画持续时间，确保为正数
+            float duration = Mathf.Max(0.1f, nextSceneScaleDuration); // 最小0.1秒，避免过短
+            float elapsedTime = 0f;
+            
+            // 执行平滑放大动画
+            while (elapsedTime < duration)
+            {
+                elapsedTime += Time.deltaTime;
+                float progress = elapsedTime / duration;
+                
+                // 使用平滑曲线使动画更自然
+                progress = Mathf.SmoothStep(0f, 1f, progress);
+                
+                // 线性插值缩放
+                rectTransform.localScale = Vector3.Lerp(Vector3.zero, Vector3.one, progress);
+                
+                yield return null;
+            }
+            
+            // 确保最终缩放为1
+            rectTransform.localScale = Vector3.one;
+            Debug.Log("NextScene scaling animation completed");
         }
     }
 }

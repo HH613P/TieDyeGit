@@ -8,4 +8,17 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/Design/DesignScene.unity
+    guid: 818b27d892136f7489128bdef8102b34
+  - enabled: 1
+    path: Assets/Scenes/Design/DyeProduct.unity
+    guid: 3a9cab44f4f3f0b4684c1b1f2c8cfeaf
+  - enabled: 1
+    path: Assets/Scenes/Design/Cloth.unity
+    guid: b218025d637ac6e46a0e5c38934a7178
+  - enabled: 1
+    path: Assets/Scenes/Design/TieDyeScene.unity
+    guid: 88b6c2450da6c1744af1f1fc41ec262a
   m_configObjects: {}
+  m_UseUCBPForAssetBundles: 0
