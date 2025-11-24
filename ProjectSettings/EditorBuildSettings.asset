@@ -20,5 +20,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Design/TieDyeScene.unity
     guid: 88b6c2450da6c1744af1f1fc41ec262a
+  - enabled: 1
+    path: Assets/Scenes/Design/test.unity
+    guid: 2aa6e2ea534beb442ab5b8fe5bb1499b
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0
